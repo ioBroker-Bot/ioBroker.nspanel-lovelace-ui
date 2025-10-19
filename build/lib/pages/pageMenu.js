@@ -69,7 +69,7 @@ class PageMenu extends import_Page.Page {
           this.maxItems = 4;
           break;
         case "cardEntities":
-          this.maxItems = this.basePanel.info.nspanel.model === "us-p" ? 5 : 4;
+          this.maxItems = this.basePanel.info.nspanel.model === "us-p" ? 6 : 4;
           break;
         case "cardThermo2":
           this.maxItems = 9;
