@@ -997,26 +997,71 @@ class NavigationAssignmentPanel extends ConfigGeneric<
                                                                             size="small"
                                                                             onClick={e => {
                                                                                 e.stopPropagation();
-                                                                                // Two-step delete on mobile (touch devices)
-                                                                                if (!isPending) {
-                                                                                    // First tap: mark as pending
-                                                                                    this.setState({
-                                                                                        pendingDelete: topic,
-                                                                                    });
-                                                                                    // Auto-clear after 3 seconds
-                                                                                    setTimeout(() => {
+
+                                                                                // Mobile (touch): Two-step delete
+                                                                                // Desktop (mouse): Single-click delete
+                                                                                const isMobile =
+                                                                                    window.matchMedia(
+                                                                                        '(max-width: 900px)',
+                                                                                    ).matches;
+
+                                                                                if (isMobile) {
+                                                                                    // Two-step delete on mobile (touch devices)
+                                                                                    if (!isPending) {
+                                                                                        // First tap: mark as pending
+                                                                                        this.setState({
+                                                                                            pendingDelete: topic,
+                                                                                        });
+                                                                                        // Auto-clear after 3 seconds
+                                                                                        setTimeout(() => {
+                                                                                            if (
+                                                                                                this.state
+                                                                                                    .pendingDelete ===
+                                                                                                topic
+                                                                                            ) {
+                                                                                                this.setState({
+                                                                                                    pendingDelete:
+                                                                                                        undefined,
+                                                                                                });
+                                                                                            }
+                                                                                        }, 3000);
+                                                                                    } else {
+                                                                                        // Second tap: confirm delete
+                                                                                        const updated =
+                                                                                            this.state.added.filter(
+                                                                                                p =>
+                                                                                                    p.panelTopic !==
+                                                                                                    topic,
+                                                                                            );
+                                                                                        const updatedAssignments =
+                                                                                            this.state.assignments.filter(
+                                                                                                ass =>
+                                                                                                    ass.topic !== topic,
+                                                                                            );
+                                                                                        const newSelected =
+                                                                                            updated.length > 0
+                                                                                                ? updated[0]?.panelTopic
+                                                                                                : undefined;
+                                                                                        this.setState({
+                                                                                            added: updated,
+                                                                                            assignments:
+                                                                                                updatedAssignments,
+                                                                                            selectedAddedTopic:
+                                                                                                newSelected,
+                                                                                            pendingDelete: undefined,
+                                                                                        });
                                                                                         if (
-                                                                                            this.state.pendingDelete ===
-                                                                                            topic
+                                                                                            this.props.onAssign &&
+                                                                                            this.props.uniqueName
                                                                                         ) {
-                                                                                            this.setState({
-                                                                                                pendingDelete:
-                                                                                                    undefined,
-                                                                                            });
+                                                                                            this.props.onAssign(
+                                                                                                this.props.uniqueName,
+                                                                                                updatedAssignments,
+                                                                                            );
                                                                                         }
-                                                                                    }, 3000);
+                                                                                    }
                                                                                 } else {
-                                                                                    // Second tap: confirm delete
+                                                                                    // Desktop: Single-click delete (immediate)
                                                                                     const updated =
                                                                                         this.state.added.filter(
                                                                                             p => p.panelTopic !== topic,
