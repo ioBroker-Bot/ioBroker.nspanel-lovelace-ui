@@ -109,7 +109,7 @@ const genericStateObjects = {
           },
           native: {}
         },
-        yes: {
+        buttonRight: {
           _id: "",
           type: "state",
           common: {
@@ -122,7 +122,20 @@ const genericStateObjects = {
           },
           native: {}
         },
-        no: {
+        buttonMid: {
+          _id: "",
+          type: "state",
+          common: {
+            name: "Button middle",
+            type: "string",
+            role: "text",
+            read: true,
+            write: false,
+            def: ""
+          },
+          native: {}
+        },
+        buttonLeft: {
           _id: "",
           type: "state",
           common: {
@@ -203,6 +216,19 @@ const genericStateObjects = {
           type: "channel",
           common: {
             name: "StateObjects.cmd"
+          },
+          native: {}
+        },
+        isBuzzerAllowed: {
+          _id: "",
+          type: "state",
+          common: {
+            name: "Allow buzzer from notifications and popups",
+            type: "boolean",
+            role: "switch",
+            read: true,
+            write: true,
+            def: true
           },
           native: {}
         },
@@ -670,12 +696,51 @@ const genericStateObjects = {
             _id: "",
             type: "state",
             common: {
-              name: "colorHeadline",
+              name: "colorButtonLeft",
               type: "string",
               role: "json",
               read: true,
               write: true,
               def: JSON.stringify({ r: 255, g: 255, b: 255 })
+            },
+            native: {}
+          },
+          buttonMid: {
+            _id: "",
+            type: "state",
+            common: {
+              name: "buttonMid",
+              type: "string",
+              role: "text",
+              read: true,
+              write: true,
+              def: ""
+            },
+            native: {}
+          },
+          colorButtonMid: {
+            _id: "",
+            type: "state",
+            common: {
+              name: "colorButtonMid",
+              type: "string",
+              role: "json",
+              read: true,
+              write: true,
+              def: JSON.stringify({ r: 255, g: 255, b: 255 })
+            },
+            native: {}
+          },
+          buzzer: {
+            _id: "",
+            type: "state",
+            common: {
+              name: "buzzer",
+              type: "boolean",
+              role: "switch",
+              read: true,
+              write: true,
+              def: false
             },
             native: {}
           },
@@ -696,7 +761,7 @@ const genericStateObjects = {
             _id: "",
             type: "state",
             common: {
-              name: "colorHeadline",
+              name: "colorButtonRight",
               type: "string",
               role: "json",
               read: true,
@@ -722,7 +787,7 @@ const genericStateObjects = {
             _id: "",
             type: "state",
             common: {
-              name: "colorHeadline",
+              name: "colorText",
               type: "string",
               role: "json",
               read: true,
@@ -764,7 +829,7 @@ const genericStateObjects = {
             _id: "",
             type: "state",
             common: {
-              name: "colorHeadline",
+              name: "colorIcon",
               type: "string",
               role: "json",
               read: true,
@@ -1692,6 +1757,17 @@ const InternalStates = {
       },
       noTrigger: true
     },
+    "cmd/isBuzzerAllowed": {
+      val: true,
+      ack: true,
+      common: {
+        name: "isBuzzerAllowed",
+        type: "boolean",
+        role: "switch",
+        read: true,
+        write: true
+      }
+    },
     "cmd/power1": {
       val: false,
       ack: true,
@@ -1837,7 +1913,7 @@ const InternalStates = {
         states: globals.arrayOfScreensaverModes
       }
     },
-    "cmd/NotificationCleared2": {
+    "cmd/NotificationClearedAll": {
       val: false,
       ack: true,
       common: {
@@ -2094,7 +2170,7 @@ const InternalStates = {
         write: true
       }
     },
-    "cmd/NotificationCustomYes": {
+    "cmd/NotificationCustomRight": {
       val: false,
       ack: true,
       common: {
@@ -2105,7 +2181,18 @@ const InternalStates = {
         write: true
       }
     },
-    "cmd/NotificationCustomNo": {
+    "cmd/NotificationCustomLeft": {
+      val: false,
+      ack: true,
+      common: {
+        name: "",
+        type: "string",
+        role: "text",
+        read: true,
+        write: true
+      }
+    },
+    "cmd/NotificationCustomMid": {
       val: false,
       ack: true,
       common: {

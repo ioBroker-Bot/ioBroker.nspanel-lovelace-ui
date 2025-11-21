@@ -38,6 +38,7 @@ import { PageChartBar } from '../pages/pageChartBar';
 import { PageChartLine } from '../pages/pageChartLine';
 import { PageThermo2 } from '../pages/pageThermo2';
 import { AdminConfiguration } from '../configuration/admin';
+import type { NSPanel } from '../types/NSPanel';
 
 export interface panelConfigPartial extends Partial<panelConfigTop> {
     format?: Partial<Intl.DateTimeFormatOptions>;
@@ -85,7 +86,7 @@ export class Panel extends BaseClass {
 
     public blockTouchEventsForMs: number = 200; // ms
     public lastSendTypeDate: number = 0;
-
+    public isBuzzerAllowed: boolean = true;
     options: panelConfigPartial;
     flashing: boolean = false;
     public screenSaver: Screensaver | undefined;
@@ -452,6 +453,13 @@ export class Panel extends BaseClass {
                 );
             }
         }
+
+        await this.library.writedp(
+            `panels.${this.name}.cmd.isBuzzerAllowed`,
+            undefined,
+            definition.genericStateObjects.panel.panels.cmd.isBuzzerAllowed,
+        );
+        this.isBuzzerAllowed = !!(this.library.readdb(`panels.${this.name}.cmd.isBuzzerAllowed`)?.val ?? true);
 
         await this.library.writedp(
             `panels.${this.name}.cmd.screenSaver`,
@@ -1307,6 +1315,8 @@ export class Panel extends BaseClass {
                         text: (this.library.readdb(`panels.${this.name}.cmd.pagePopup.text`)?.val as string) || '',
                         buttonLeft:
                             (this.library.readdb(`panels.${this.name}.cmd.pagePopup.buttonLeft`)?.val as string) || '',
+                        buttonMid:
+                            (this.library.readdb(`panels.${this.name}.cmd.pagePopup.buttonMid`)?.val as string) || '',
                         buttonRight:
                             (this.library.readdb(`panels.${this.name}.cmd.pagePopup.buttonRight`)?.val as string) || '',
                         colorHeadline: getRGBFromValue(
@@ -1317,6 +1327,9 @@ export class Panel extends BaseClass {
                         ),
                         colorButtonLeft: getRGBFromValue(
                             this.library.readdb(`panels.${this.name}.cmd.pagePopup.colorButtonLeft`)?.val || '#FFFFFF',
+                        ),
+                        colorButtonMid: getRGBFromValue(
+                            this.library.readdb(`panels.${this.name}.cmd.pagePopup.colorButtonMid`)?.val || '#FFFFFF',
                         ),
                         colorButtonRight: getRGBFromValue(
                             this.library.readdb(`panels.${this.name}.cmd.pagePopup.colorButtonRight`)?.val || '#FFFFFF',
@@ -1329,6 +1342,7 @@ export class Panel extends BaseClass {
                             this.library.readdb(`panels.${this.name}.cmd.pagePopup.iconColor`)?.val || '#FFFFFF',
                         ),
                         alwaysOn: !!(this.library.readdb(`panels.${this.name}.cmd.pagePopup.alwaysOn`)?.val ?? true),
+                        buzzer: !!(this.library.readdb(`panels.${this.name}.cmd.pagePopup.buzzer`)?.val ?? false),
                     };
                     let panels: Panel[] = [this];
                     if (global) {
@@ -1338,6 +1352,16 @@ export class Panel extends BaseClass {
                         await this.statesControler.setInternalState(
                             `${panel.name}/cmd/popupNotificationCustom`,
                             JSON.stringify(details),
+                            false,
+                        );
+                    }
+                    break;
+                }
+                case 'isBuzzerAllowed': {
+                    if (state && state.val != null) {
+                        await this.statesControler.setInternalState(
+                            `${this.name}/cmd/isBuzzerAllowed`,
+                            !!state.val,
                             false,
                         );
                     }
@@ -1588,6 +1612,7 @@ export class Panel extends BaseClass {
                 );
                 break;
             }
+            case 'buttonPress3':
             case 'buttonPress2': {
                 if (event.id == 'screensaver') {
                     await this.library.writedp(
@@ -1676,16 +1701,30 @@ export class Panel extends BaseClass {
                         this.log.debug(`Ignore event because of blockTouchEventsForMs ${this.blockTouchEventsForMs}ms`);
                         break;
                     }
+
                     if (
                         event.action === 'button' &&
                         ['bNext', 'bPrev', 'bUp', 'bHome', 'bSubNext', 'bSubPrev'].indexOf(event.id) != -1
                     ) {
                         if (['bPrev', 'bUp', 'bSubPrev'].indexOf(event.id) != -1) {
-                            this.getActivePage().goLeft();
+                            this.getActivePage().goLeft(event.method === 'buttonPress2');
                         } else if (['bNext', 'bHome', 'bSubNext'].indexOf(event.id) != -1) {
-                            this.getActivePage().goRight();
+                            this.getActivePage().goRight(event.method === 'buttonPress2');
                         }
                         break;
+                    }
+                    if (event.method === 'buttonPress3') {
+                        if (
+                            await this.getActivePage().onButtonPress3(
+                                event.id,
+                                event.popup as Types.PopupType,
+                                event.action,
+                                event.opt,
+                                event,
+                            )
+                        ) {
+                            break;
+                        }
                     }
                     await this.getActivePage().onPopupRequest(
                         event.id,
@@ -1754,7 +1793,7 @@ export class Panel extends BaseClass {
         if (!id.startsWith(this.name)) {
             return null;
         }
-        const token: Types.PanelInternalCommand = id.replace(`${this.name}/`, '') as Types.PanelInternalCommand;
+        const token: NSPanel.PanelInternalCommand = id.replace(`${this.name}/`, '') as NSPanel.PanelInternalCommand;
         if (state && !state.ack && state.val != null) {
             switch (token) {
                 case 'cmd/power1': {
@@ -1867,7 +1906,15 @@ export class Panel extends BaseClass {
                     }
                     break;
                 }
-                case 'cmd/NotificationCleared2':
+                case 'cmd/NotificationClearedAll': {
+                    await this.controller.systemNotification.clearNotification();
+                    await this.statesControler.setInternalState(
+                        `${this.name}/system/popupNotification`,
+                        { id: '' },
+                        false,
+                    );
+                    break;
+                }
                 case 'cmd/NotificationCleared': {
                     if (typeof state.val !== 'number') {
                         if (typeof state.val === 'string' && !isNaN(parseInt(state.val))) {
@@ -1893,8 +1940,9 @@ export class Panel extends BaseClass {
                                 id: `${index}`,
                                 headline: val.headline,
                                 text: val.text,
-                                buttonLeft: 'next',
-                                buttonRight: 'clear',
+                                buttonLeft: 'nextW',
+                                buttonMid: 'Clear all',
+                                buttonRight: 'Clear',
                                 alwaysOn: true,
                             });
                         }
@@ -1919,25 +1967,36 @@ export class Panel extends BaseClass {
                     );
                     break;
                 }
-                case 'cmd/NotificationCustomYes': {
+                case 'cmd/NotificationCustomRight': {
                     if (typeof state.val === 'object') {
                         break;
                     }
                     await this.library.writedp(
-                        `panels.${this.name}.pagePopup.yes`,
+                        `panels.${this.name}.pagePopup.buttonRight`,
                         state.val,
-                        definition.genericStateObjects.panel.panels.pagePopup.yes,
+                        definition.genericStateObjects.panel.panels.pagePopup.buttonRight,
                     );
                     break;
                 }
-                case 'cmd/NotificationCustomNo': {
+                case 'cmd/NotificationCustomLeft': {
                     if (typeof state.val === 'object') {
                         break;
                     }
                     await this.library.writedp(
-                        `panels.${this.name}.pagePopup.no`,
+                        `panels.${this.name}.pagePopup.buttonLeft`,
                         state.val,
-                        definition.genericStateObjects.panel.panels.pagePopup.no,
+                        definition.genericStateObjects.panel.panels.pagePopup.buttonLeft,
+                    );
+                    break;
+                }
+                case 'cmd/NotificationCustomMid': {
+                    if (typeof state.val === 'object') {
+                        break;
+                    }
+                    await this.library.writedp(
+                        `panels.${this.name}.pagePopup.buttonMid`,
+                        state.val,
+                        definition.genericStateObjects.panel.panels.pagePopup.buttonMid,
                     );
                     break;
                 }
@@ -2043,6 +2102,13 @@ export class Panel extends BaseClass {
                     }
                     break;
                 }
+                case 'cmd/isBuzzerAllowed': {
+                    if (typeof state.val === 'boolean') {
+                        this.isBuzzerAllowed = state.val;
+                        await this.library.writedp(`panels.${this.name}.cmd.isBuzzerAllowed`, state.val);
+                    }
+                    break;
+                }
             }
         }
         switch (token) {
@@ -2081,11 +2147,27 @@ export class Panel extends BaseClass {
             }
             case 'cmd/popupNotification2':
             case 'cmd/popupNotification': {
-                if (this.notifyIndex !== -1) {
-                    const val = this.controller.systemNotification.getNotification(this.notifyIndex);
+                let details: pages.PagePopupDataDetails[] | undefined;
+                let index = -1;
+                while ((index = this.controller.systemNotification.getNotificationIndex(++index)) !== -1) {
+                    const val = this.controller.systemNotification.getNotification(index);
                     if (val) {
-                        return JSON.stringify(val);
+                        details = details || [];
+                        details.push({
+                            priority: 50,
+                            type: 'acknowledge',
+                            id: `${index}`,
+                            headline: val.headline,
+                            text: val.text,
+                            buttonLeft: 'next',
+                            buttonMid: 'clear all',
+                            buttonRight: 'clear',
+                            alwaysOn: true,
+                        });
                     }
+                }
+                if (details) {
+                    return details;
                 }
                 return null;
             }
@@ -2124,6 +2206,9 @@ export class Panel extends BaseClass {
             }
             case 'cmd/hideCards': {
                 return this.hideCards;
+            }
+            case 'cmd/isBuzzerAllowed': {
+                return this.isBuzzerAllowed;
             }
         }
         return null;

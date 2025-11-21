@@ -73,6 +73,7 @@ export const genericStateObjects: {
                 detachLeft: ioBroker.StateObject;
                 hideCards: ioBroker.StateObject;
                 buzzer: ioBroker.StateObject;
+                isBuzzerAllowed: ioBroker.StateObject;
             };
 
             buttons: customChannelType & {
@@ -83,8 +84,9 @@ export const genericStateObjects: {
             };
             pagePopup: customChannelType & {
                 id: ioBroker.StateObject;
-                yes: ioBroker.StateObject;
-                no: ioBroker.StateObject;
+                buttonRight: ioBroker.StateObject;
+                buttonMid: ioBroker.StateObject;
+                buttonLeft: ioBroker.StateObject;
             };
             info: customChannelType & {
                 status: ioBroker.StateObject;
@@ -154,7 +156,7 @@ export const genericStateObjects: {
                     },
                     native: {},
                 },
-                yes: {
+                buttonRight: {
                     _id: '',
                     type: 'state',
                     common: {
@@ -167,7 +169,20 @@ export const genericStateObjects: {
                     },
                     native: {},
                 },
-                no: {
+                buttonMid: {
+                    _id: '',
+                    type: 'state',
+                    common: {
+                        name: 'Button middle',
+                        type: 'string',
+                        role: 'text',
+                        read: true,
+                        write: false,
+                        def: '',
+                    },
+                    native: {},
+                },
+                buttonLeft: {
                     _id: '',
                     type: 'state',
                     common: {
@@ -248,6 +263,19 @@ export const genericStateObjects: {
                     type: 'channel',
                     common: {
                         name: 'StateObjects.cmd',
+                    },
+                    native: {},
+                },
+                isBuzzerAllowed: {
+                    _id: '',
+                    type: 'state',
+                    common: {
+                        name: 'Allow buzzer from notifications and popups',
+                        type: 'boolean',
+                        role: 'switch',
+                        read: true,
+                        write: true,
+                        def: true,
                     },
                     native: {},
                 },
@@ -716,12 +744,51 @@ export const genericStateObjects: {
                         _id: '',
                         type: 'state',
                         common: {
-                            name: 'colorHeadline',
+                            name: 'colorButtonLeft',
                             type: 'string',
                             role: 'json',
                             read: true,
                             write: true,
                             def: JSON.stringify({ r: 255, g: 255, b: 255 }),
+                        },
+                        native: {},
+                    },
+                    buttonMid: {
+                        _id: '',
+                        type: 'state',
+                        common: {
+                            name: 'buttonMid',
+                            type: 'string',
+                            role: 'text',
+                            read: true,
+                            write: true,
+                            def: '',
+                        },
+                        native: {},
+                    },
+                    colorButtonMid: {
+                        _id: '',
+                        type: 'state',
+                        common: {
+                            name: 'colorButtonMid',
+                            type: 'string',
+                            role: 'json',
+                            read: true,
+                            write: true,
+                            def: JSON.stringify({ r: 255, g: 255, b: 255 }),
+                        },
+                        native: {},
+                    },
+                    buzzer: {
+                        _id: '',
+                        type: 'state',
+                        common: {
+                            name: 'buzzer',
+                            type: 'boolean',
+                            role: 'switch',
+                            read: true,
+                            write: true,
+                            def: false,
                         },
                         native: {},
                     },
@@ -742,7 +809,7 @@ export const genericStateObjects: {
                         _id: '',
                         type: 'state',
                         common: {
-                            name: 'colorHeadline',
+                            name: 'colorButtonRight',
                             type: 'string',
                             role: 'json',
                             read: true,
@@ -768,7 +835,7 @@ export const genericStateObjects: {
                         _id: '',
                         type: 'state',
                         common: {
-                            name: 'colorHeadline',
+                            name: 'colorText',
                             type: 'string',
                             role: 'json',
                             read: true,
@@ -811,7 +878,7 @@ export const genericStateObjects: {
                         _id: '',
                         type: 'state',
                         common: {
-                            name: 'colorHeadline',
+                            name: 'colorIcon',
                             type: 'string',
                             role: 'json',
                             read: true,
@@ -1729,7 +1796,7 @@ export const Defaults = {
     },
 };
 
-export const InternalStates: { panel: Record<types.PanelInternalCommand, types.InternalStatesObject> } = {
+export const InternalStates: { panel: Record<NSPanel.PanelInternalCommand, types.InternalStatesObject> } = {
     panel: {
         'cmd/power2': {
             val: false,
@@ -1742,6 +1809,17 @@ export const InternalStates: { panel: Record<types.PanelInternalCommand, types.I
                 write: true,
             },
             noTrigger: true,
+        },
+        'cmd/isBuzzerAllowed': {
+            val: true,
+            ack: true,
+            common: {
+                name: 'isBuzzerAllowed',
+                type: 'boolean',
+                role: 'switch',
+                read: true,
+                write: true,
+            },
         },
         'cmd/power1': {
             val: false,
@@ -1888,7 +1966,7 @@ export const InternalStates: { panel: Record<types.PanelInternalCommand, types.I
                 states: globals.arrayOfScreensaverModes,
             },
         },
-        'cmd/NotificationCleared2': {
+        'cmd/NotificationClearedAll': {
             val: false,
             ack: true,
             common: {
@@ -2145,7 +2223,7 @@ export const InternalStates: { panel: Record<types.PanelInternalCommand, types.I
                 write: true,
             },
         },
-        'cmd/NotificationCustomYes': {
+        'cmd/NotificationCustomRight': {
             val: false,
             ack: true,
             common: {
@@ -2156,7 +2234,18 @@ export const InternalStates: { panel: Record<types.PanelInternalCommand, types.I
                 write: true,
             },
         },
-        'cmd/NotificationCustomNo': {
+        'cmd/NotificationCustomLeft': {
+            val: false,
+            ack: true,
+            common: {
+                name: '',
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: true,
+            },
+        },
+        'cmd/NotificationCustomMid': {
             val: false,
             ack: true,
             common: {

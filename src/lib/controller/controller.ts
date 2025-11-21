@@ -173,18 +173,37 @@ export class Controller extends Library.BaseClass {
                 await this.library.writedp(`pagePopup.id`, _state.val, genericStateObjects.panel.panels.pagePopup.id);
                 break;
             }
-            case 'cmd/NotificationCustomYes': {
+            case 'cmd/NotificationCustomRight': {
                 if (!_state || typeof _state.val === 'object') {
                     break;
                 }
-                await this.library.writedp(`pagePopup.yes`, _state.val, genericStateObjects.panel.panels.pagePopup.yes);
+                await this.library.writedp(
+                    `pagePopup.buttonRight`,
+                    _state.val,
+                    genericStateObjects.panel.panels.pagePopup.buttonRight,
+                );
                 break;
             }
-            case 'cmd/NotificationCustomNo': {
+            case 'cmd/NotificationCustomLeft': {
                 if (!_state || typeof _state.val === 'object') {
                     break;
                 }
-                await this.library.writedp(`pagePopup.no`, _state.val, genericStateObjects.panel.panels.pagePopup.no);
+                await this.library.writedp(
+                    `pagePopup.buttonLeft`,
+                    _state.val,
+                    genericStateObjects.panel.panels.pagePopup.buttonLeft,
+                );
+                break;
+            }
+            case 'cmd/NotificationCustomMid': {
+                if (!_state || typeof _state.val === 'object') {
+                    break;
+                }
+                await this.library.writedp(
+                    `pagePopup.buttonMid`,
+                    _state.val,
+                    genericStateObjects.panel.panels.pagePopup.buttonMid,
+                );
                 break;
             }
             case 'AdapterStoppedBoolean':
@@ -331,14 +350,21 @@ export class Controller extends Library.BaseClass {
             this.onInternalCommand,
         );
         await this.statesControler.setInternalState(
-            `///cmd/NotificationCustomNo`,
+            `///cmd/NotificationCustomLeft`,
             '',
             true,
             getInternalDefaults('string', 'text', false),
             this.onInternalCommand,
         );
         await this.statesControler.setInternalState(
-            `///cmd/NotificationCustomYes`,
+            `///cmd/NotificationCustomMid`,
+            '',
+            true,
+            getInternalDefaults('string', 'text', false),
+            this.onInternalCommand,
+        );
+        await this.statesControler.setInternalState(
+            `///cmd/NotificationCustomRight`,
             '',
             true,
             getInternalDefaults('string', 'text', false),
@@ -513,54 +539,73 @@ export class Controller extends Library.BaseClass {
             return;
         }
         this.log.debug(`setPopupNotification called with data: ${JSON.stringify(temp)}`);
-        const global = temp.panel ? false : true;
         const details: PagePopupDataDetails = {
             id: typeof temp.id === 'string' ? temp.id : 'missing',
             priority: typeof temp.priority === 'number' ? temp.priority : 50,
             alwaysOn: typeof temp.alwaysOn === 'boolean' ? temp.alwaysOn : true,
             type: typeof temp.type === 'string' ? temp.type : 'information',
-            global: global,
+            global: temp.global !== false,
             headline: typeof temp.headline === 'string' ? temp.headline : 'Missing Headline',
             text: typeof temp.text === 'string' ? temp.text : 'Missing Text',
             buttonLeft: typeof temp.buttonLeft === 'string' ? temp.buttonLeft : '',
+            buttonMid: typeof temp.buttonMid === 'string' ? temp.buttonMid : '',
             buttonRight: typeof temp.buttonRight === 'string' ? temp.buttonRight : '',
             icon: typeof temp.icon === 'string' ? temp.icon : undefined,
+            iconColor: temp.iconColor != null ? getRGBFromValue(temp.iconColor) : undefined,
+            textSize:
+                typeof temp.textSize === 'string'
+                    ? temp.textSize
+                    : typeof temp.textSize === 'number'
+                      ? String(temp.textSize)
+                      : undefined,
             colorHeadline: temp.colorHeadline != null ? getRGBFromValue(temp.colorHeadline) : undefined,
             colorText: temp.colorText != null ? getRGBFromValue(temp.colorText) : undefined,
             colorButtonLeft: temp.colorButtonLeft != null ? getRGBFromValue(temp.colorButtonLeft) : undefined,
+            colorButtonMid: temp.colorButtonMid != null ? getRGBFromValue(temp.colorButtonMid) : undefined,
             colorButtonRight: temp.colorButtonRight != null ? getRGBFromValue(temp.colorButtonRight) : undefined,
+            buzzer: !temp.buzzer || !(temp.buzzer === true || typeof temp.buzzer === 'string') ? false : temp.buzzer,
         };
         /**
-          type PagePopupDataDetails = {
+         type PagePopupDataDetails = {
              headline: string;
              text: string;
-             panel?: string;
+             panel?: string | string[];
+             global?: boolean; // without panel default is true
              priority?: number;
-             type?: PopupDetailsType;
+             type?: 'information' | 'acknowledge';
              id?: string;
-             colorHeadline?: RGB | string;
+             colorHeadline?: {r:number,g:number,b:number} | string;
              buttonLeft?: string;
-             colorButtonLeft?: RGB | string;
+             colorButtonLeft?: {r:number,g:number,b:number} | string;
+             buttonMid?: string;
+             colorButtonMid?: {r:number,g:number,b:number} | string;
              buttonRight?: string;
-             colorButtonRight?: RGB | string;
-             colorText?: RGB | string;
+             colorButtonRight?: {r:number,g:number,b:number} | string;
+             colorText?: {r:number,g:number,b:number} | string;
              textSize?: string;
              icon?: string;
-             iconColor?: RGB;
+             iconColor?: {r:number,g:number,b:number};
              alwaysOn?: boolean;
+             buzzer?: boolean | string;
          };
          */
         let panels: Panel.Panel[] = [];
-        if (global) {
+        if (!temp.panel) {
             panels = this.panels;
         } else {
-            const panel = this.panels.find(p => p.name === temp.panel || p.friendlyName === temp.panel);
-            if (!panel) {
-                this.log.error(`setPopupMessage: Panel ${temp.panel} not found`);
-                return;
+            if (!Array.isArray(temp.panel)) {
+                temp.panel = [temp.panel];
             }
-            panels.push(panel);
+            for (const pName of temp.panel) {
+                const panel = this.panels.find(p => p.name === pName || p.friendlyName === pName);
+                if (!panel) {
+                    this.log.error(`setPopupMessage: Panel ${pName} not found`);
+                    continue;
+                }
+                panels.push(panel);
+            }
         }
+        temp.global = details.global && panels.length > 1;
         for (const panel of panels) {
             await this.statesControler.setInternalState(
                 `${panel.name}/cmd/popupNotificationCustom`,

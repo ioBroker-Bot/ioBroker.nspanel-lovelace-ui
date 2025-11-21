@@ -279,9 +279,6 @@ class NspanelLovelaceUi extends utils.Adapter {
       );
       this.config.mqttIp = "127.0.0.1";
     }
-    if (this.config.doubleClickTime === void 0 || typeof this.config.doubleClickTime !== "number" || !(this.config.doubleClickTime > 0)) {
-      this.config.doubleClickTime = 350;
-    }
     try {
       import_icon_mapping.Icons.adapter = this;
       await this.library.init();
@@ -861,7 +858,7 @@ class NspanelLovelaceUi extends utils.Adapter {
         }
         case "setPopupNotification": {
           if (this.controller && obj.message) {
-            void this.controller.setPopupNotification(obj.message);
+            await this.controller.setPopupNotification(obj.message);
           }
           if (obj.callback) {
             this.sendTo(obj.from, obj.command, [], obj.callback);

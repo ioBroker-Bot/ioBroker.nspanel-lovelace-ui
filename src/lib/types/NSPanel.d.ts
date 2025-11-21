@@ -120,6 +120,7 @@ export namespace NSPanel {
     };
 
     type PanelInternalCommand =
+        | 'cmd/isBuzzerAllowed'
         | 'cmd/screensaverHeadingNotification'
         | 'cmd/screensaverTextNotification'
         | 'cmd/screensaverActivateNotification'
@@ -134,13 +135,14 @@ export namespace NSPanel {
         | 'cmd/dimActive'
         | 'cmd/dimStandby'
         | 'cmd/screenSaverTimeout'
-        | 'cmd/NotificationCleared2'
+        | 'cmd/NotificationClearedAll'
         | 'cmd/NotificationNext2'
         | 'cmd/popupNotification2'
         | 'cmd/NotificationCleared'
         | 'cmd/NotificationNext'
         | 'info/NotificationCounter'
         | 'cmd/popupNotification'
+        | 'system/popupNotification'
         | 'info/modelVersion'
         | 'info/displayVersion'
         | 'info/tasmotaVersion'
@@ -154,7 +156,12 @@ export namespace NSPanel {
         | 'cmd/screenSaverDoubleClick'
         | 'cmd/screenSaverLayout'
         | 'cmd/hideCards'
-        | 'cmd/buzzer';
+        | 'cmd/buzzer'
+        | 'cmd/NotificationCustomRight'
+        | 'cmd/NotificationCustomMid'
+        | 'cmd/NotificationCustomLeft'
+        | 'cmd/NotificationCustomID'
+        | 'cmd/popupNotificationCustom';
 
     type AlwaysOnMode = 'always' | 'none' | 'ignore' | 'action';
 
@@ -1142,6 +1149,7 @@ export namespace NSPanel {
         | 'entity2'
         | 'entity3'
         | 'setNavi'
+        | 'setNaviLongPress'
         | 'confirm'
         | 'entity4'
         | 'popup'
@@ -1349,6 +1357,7 @@ export namespace NSPanel {
         valueList?: number;
         valueList2?: number;
         setNavi?: number;
+        setNaviLongPress?: number;
         confirm?: string;
         setList?: number;
         popup?: PopupEntryType;
